@@ -3,8 +3,7 @@
 # CORPUZ, John Exequiel A.
 # DIAZ, Sebastian Q.
 
-import socket
-import struct
+import os, socket, struct
 
 TFTP_PORT = 69
 MAX_BLOCK_SIZE = 512
@@ -85,6 +84,10 @@ class TFTPSession:
             print(f"Uploaded {local_name} to server as {remote_name}.")
 
     def download(self, remote_name, local_name):
+        if os.path.exists(local_name):
+            print("Path already exists locally. Select another filename or path.")
+            return
+
         request = pack_request(OP_RRQ, remote_name)
         self.client.sendto(request, (self.server_ip, TFTP_PORT))
 
