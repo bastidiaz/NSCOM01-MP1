@@ -85,13 +85,6 @@ class TFTPSession:
             print(f"Uploaded {local_name} to server as {remote_name}.")
 
     def download(self, remote_name, local_name):
-        try:
-            with open(local_name, "rb") as f:
-                pass
-        except FileNotFoundError:
-            print(f"Unexpected error. No such file or directory: '{local_name}'.")
-            return
-
         request = pack_request(OP_RRQ, remote_name)
         self.client.sendto(request, (self.server_ip, TFTP_PORT))
 
@@ -107,32 +100,39 @@ class TFTPSession:
             error_message = response[4:].decode()
             print(f"Error from server: {error_message}")
         else:
-            with open(local_name, "wb") as f:
-                block_number = 1
-                while True:
-                    opcode = response[1]
-                    if opcode == OP_DATA:
-                        received_block_number = struct.unpack('!H', response[2:4])[0]
-                        data = response[4:]
+            try:
+                with open(local_name, "wb") as f:
+                    block_number = 1
+                    while True:
+                        opcode = response[1]
+                        if opcode == OP_DATA:
+                            received_block_number = struct.unpack('!H', response[2:4])[0]
+                            data = response[4:]
 
-                        if received_block_number == block_number:
-                            f.write(data)
+                            if received_block_number == block_number:
+                                f.write(data)
 
-                            ack = bytearray([0, OP_ACK, 0, block_number])
-                            self.client.sendto(ack, addr)
+                                ack = bytearray([0, OP_ACK, 0, block_number])
+                                self.client.sendto(ack, addr)
 
-                            block_number += 1
+                                block_number += 1
 
-                        if len(data) < MAX_BLOCK_SIZE:
+                            if len(data) < MAX_BLOCK_SIZE:
+                                break
+
+                        elif opcode == OP_ERROR:
+                            print(f"Error from server: {response[4:].decode()}")
                             break
 
-                    elif opcode == OP_ERROR:
-                        print(f"Error from server: {response[4:].decode()}")
-                        break
+                        response, addr = self.client.recvfrom(2048)
 
-                    response, addr = self.client.recvfrom(2048)
-
-                print(f"Saved {remote_name} from server as {local_name}.")
+                    print(f"Saved {remote_name} from server as {local_name}.")
+            except FileNotFoundError:
+                print("Error saving file. Please check if the file path is valid.")
+                return
+            except:
+                print("Unexpected error. Please try again.")
+                return
 
 def main():
     print("Simple TFTP Client")
