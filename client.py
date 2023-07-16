@@ -19,12 +19,16 @@ OP_ERROR = 5  # Error
 def pack_request(opcode, filename, mode="octet"):
     return struct.pack('!H', opcode) + filename.encode() + b'\0' + mode.encode() + b'\0'
 
-
 class TFTPSession:
     def __init__(self, server_ip):
         self.server_ip = server_ip
         self.client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.client.settimeout(TIMEOUT)
+
+    def create_socket(self):
+        client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        client.settimeout(TIMEOUT)
+        return client
 
     def upload(self, local_name, remote_name):
         try:
@@ -34,6 +38,28 @@ class TFTPSession:
             print("File not found. Please check if the file exists in the local directory.")
             return
 
+        # Probe the server to check if the file already exists.
+        probe_request = pack_request(OP_RRQ, remote_name)
+        self.client.sendto(probe_request, (self.server_ip, TFTP_PORT))
+
+        try:
+            probe_response, _ = self.client.recvfrom(2048)
+        except socket.timeout:
+            print("Timeout error. Please check if the server is running or configured properly.")
+            return
+        except:
+            print("Unexpected error during probe. Please try again.")
+            return
+
+        probe_opcode = probe_response[1]
+
+        if probe_opcode != OP_ERROR:
+            print(f"File {remote_name} already exists on the server.")
+            self.client.close()
+            self.client = self.create_socket()
+            return
+
+        # If the file does not exist, upload it.
         request = pack_request(OP_WRQ, remote_name)
         self.client.sendto(request, (self.server_ip, TFTP_PORT))
 
@@ -136,6 +162,7 @@ class TFTPSession:
             except:
                 print("Unexpected error. Please try again.")
                 return
+
 
 def main():
     print("Simple TFTP Client")
