@@ -1,2 +1,2 @@
-# NSCOM01-MP1
- Machine Project #1 - Simple TFTP Client
+# Simple TFTP Client
+### Class requirement for DLSU CS-NIS NSCOM01 (Machine Project #1)
