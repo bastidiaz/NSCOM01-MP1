@@ -16,7 +16,7 @@ OP_ACK = 4  # Acknowledgement
 OP_ERROR = 5  # Error
 
 
-def pack_request(opcode, filename, mode="octet"):
+def pack_request(opcode, filename, mode):
     return struct.pack('!H', opcode) + filename.encode() + b'\0' + mode.encode() + b'\0'
 
 class TFTPSession:
@@ -30,7 +30,7 @@ class TFTPSession:
         client.settimeout(TIMEOUT)
         return client
 
-    def upload(self, local_name, remote_name):
+    def upload(self, local_name, remote_name, mode):
         try:
             with open(local_name, "rb") as f:
                 pass
@@ -39,7 +39,7 @@ class TFTPSession:
             return
 
         # Probe the server to check if the file already exists.
-        probe_request = pack_request(OP_RRQ, remote_name)
+        probe_request = pack_request(OP_RRQ, remote_name, mode)
         self.client.sendto(probe_request, (self.server_ip, TFTP_PORT))
 
         try:
@@ -60,7 +60,7 @@ class TFTPSession:
             return
 
         # If the file does not exist, upload it.
-        request = pack_request(OP_WRQ, remote_name)
+        request = pack_request(OP_WRQ, remote_name, mode)
         self.client.sendto(request, (self.server_ip, TFTP_PORT))
 
         try:
@@ -109,12 +109,12 @@ class TFTPSession:
 
             print(f"Uploaded {local_name} to server as {remote_name}.")
 
-    def download(self, remote_name, local_name):
+    def download(self, remote_name, local_name, mode):
         if os.path.exists(local_name):
             print("Path already exists locally. Select another filename or path.")
             return
 
-        request = pack_request(OP_RRQ, remote_name)
+        request = pack_request(OP_RRQ, remote_name, mode)
         self.client.sendto(request, (self.server_ip, TFTP_PORT))
 
         try:
@@ -169,18 +169,26 @@ def main():
     print("Before anything, please make sure that your TFTP server is running and configured properly.")
     print("We recommend using TFTPD64 because this client was only tested with that software.")
     server_ip = input("Enter TFTP server IP address: ")
+    mode = input("Enter mode (netascii/octet): ")
+    while mode not in ["netascii", "octet"]:
+        print("Invalid mode. Please enter either netascii or octet.")
+        mode = input("Enter mode (netascii/octet): ")
     session = TFTPSession(server_ip)
 
     while True:
         action = input("Enter action (upload/download/exit): ")
+
+        if action != "exit":
+            print(f"You may specify an EXISTING directory when uploading/downloading. For example: files/FileA.jpg")
+
         if action == "upload":
-            local_name = input("Enter local file path: ")
-            remote_name = input("Enter remote file name: ")
-            session.upload(local_name, remote_name)
+            local_name = input("Enter local filename: ")
+            remote_name = input("Enter remote filename: ")
+            session.upload(local_name, remote_name, mode)
         elif action == "download":
-            remote_name = input("Enter remote file name: ")
-            local_name = input("Enter local file path: ")
-            session.download(remote_name, local_name)
+            remote_name = input("Enter remote filename: ")
+            local_name = input("Enter local filename: ")
+            session.download(remote_name, local_name, mode)
         elif action == "exit":
             break
         else:
