@@ -1,5 +1,5 @@
 # Simple TFTP Client (CLI)
-#### Class requirement for NSCOM01 in De La Salle University
+#### Features
 * Support for both upload and download of binary files
 * When uploading:
   * The program can send any file on the computer to the TFTP server as long as the file is accessible to the user using his / her OS privileges
