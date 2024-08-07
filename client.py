@@ -1,8 +1,3 @@
-# NSCOM01 - S12
-# Machine Project #1
-# CORPUZ, John Exequiel A.
-# DIAZ, Sebastian Q.
-
 import os, socket, struct
 
 TFTP_PORT = 69
